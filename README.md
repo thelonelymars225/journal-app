@@ -90,13 +90,22 @@ the files land in `release/`.
 
 ## Your data
 
-Entries are stored in IndexedDB on this computer only. Use **Export backup**
-in settings to save a JSON copy, and **Import backup** to restore it.
+- **Mac app:** entries are saved as a plain file,
+  `~/Library/Application Support/Journal/journal.json`, written the moment you
+  type (with the previous version kept as `journal.json.bak`). It survives
+  quitting, restarts, and installing a new version. Deleting the app doesn't
+  delete it. Settings → "Show journal file" opens it in Finder.
+- **Browser / phone:** entries are stored in the browser's own storage on that
+  device (IndexedDB), and the app asks the browser to keep it permanently.
+
+Nothing syncs between devices. Use **Export backup** in settings to save a
+JSON copy, and **Import backup** to restore or move it.
 
 ## Files
 
 - `src/main.js` — the interface: sidebar, entry list, editor, settings
-- `src/db.js` — local storage (IndexedDB)
+- `src/db.js` — storage: a JSON file in the Mac app, IndexedDB in a browser
+- `electron/preload.cjs` — the narrow bridge the page uses to read/write that file
 - `src/topics.js` — default topics and the keyword fallback
 - `src/classifier.js`, `src/classifier.worker.js` — the on-device model
 - `scripts/fetch-model.mjs` — puts the model files into `public/models/`

@@ -1,10 +1,20 @@
-// Tiny IndexedDB wrapper. Everything stays in this browser profile on this machine.
+// Journal storage.
+// - In the desktop app, entries live in a plain JSON file in the app's data
+//   folder (see electron/main.cjs). Files aren't subject to browser storage
+//   cleanup, are easy to back up, and survive app updates.
+// - In a browser, entries live in IndexedDB on this machine.
+// Either way nothing leaves the computer.
+
+const fileApi = typeof window !== 'undefined' ? window.journalFile : undefined;
+export const storageKind = fileApi ? 'file' : 'browser';
+
+// ---------- IndexedDB ----------
+
 const DB_NAME = 'journal';
 const DB_VERSION = 1;
-
 let dbPromise;
 
-function open() {
+function openIdb() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -27,7 +37,7 @@ function open() {
 }
 
 async function tx(storeName, mode, fn) {
-  const db = await open();
+  const db = await openIdb();
   return new Promise((resolve, reject) => {
     const t = db.transaction(storeName, mode);
     const store = t.objectStore(storeName);
@@ -44,15 +54,77 @@ const wrap = (req) => new Promise((resolve, reject) => {
   req.onerror = () => reject(req.error);
 });
 
-export const entries = {
-  all: () => tx('entries', 'readonly', (s) => wrap(s.getAll())),
-  get: (id) => tx('entries', 'readonly', (s) => wrap(s.get(id))),
-  put: (entry) => tx('entries', 'readwrite', (s) => wrap(s.put(entry))),
-  remove: (id) => tx('entries', 'readwrite', (s) => wrap(s.delete(id))),
-  clear: () => tx('entries', 'readwrite', (s) => wrap(s.clear())),
+const idb = {
+  entries: {
+    all: () => tx('entries', 'readonly', (s) => wrap(s.getAll())),
+    get: (id) => tx('entries', 'readonly', (s) => wrap(s.get(id))),
+    put: (entry) => tx('entries', 'readwrite', (s) => wrap(s.put(entry))),
+    remove: (id) => tx('entries', 'readwrite', (s) => wrap(s.delete(id))),
+    clear: () => tx('entries', 'readwrite', (s) => wrap(s.clear())),
+  },
+  settings: {
+    get: (key) => tx('settings', 'readonly', (s) => wrap(s.get(key))),
+    set: (key, value) => tx('settings', 'readwrite', (s) => wrap(s.put(value, key))),
+  },
 };
 
-export const settings = {
-  get: (key) => tx('settings', 'readonly', (s) => wrap(s.get(key))),
-  set: (key, value) => tx('settings', 'readwrite', (s) => wrap(s.put(value, key))),
+// Ask the browser not to clear our data when disk space runs low.
+if (!fileApi && navigator.storage?.persist) navigator.storage.persist().catch(() => {});
+
+// ---------- JSON file (desktop) ----------
+
+let doc; // { version, entries: { [id]: entry }, settings: { [key]: value } }
+let docPromise;
+
+async function hasIdbData() {
+  try {
+    return (await idb.entries.all()).length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function loadDoc() {
+  if (!docPromise) {
+    docPromise = (async () => {
+      doc = await fileApi.load();
+      if (!doc) {
+        doc = { version: 1, entries: {}, settings: {} };
+        // Earlier desktop builds kept entries in IndexedDB; move them into the file once.
+        if (await hasIdbData()) {
+          for (const e of await idb.entries.all()) doc.entries[e.id] = e;
+          for (const key of ['topics', 'threshold', 'autoload', 'suggest', 'dismissed']) {
+            const v = await idb.settings.get(key);
+            if (v !== undefined) doc.settings[key] = v;
+          }
+        }
+        await fileApi.save(doc);
+      }
+      doc.entries ||= {};
+      doc.settings ||= {};
+      return doc;
+    })();
+  }
+  return docPromise;
+}
+
+// Every change is written right away; the main process serializes the writes.
+const persist = () => fileApi.save(doc);
+
+const file = {
+  entries: {
+    all: async () => Object.values((await loadDoc()).entries),
+    get: async (id) => (await loadDoc()).entries[id],
+    put: async (entry) => { (await loadDoc()).entries[entry.id] = structuredClone(entry); await persist(); },
+    remove: async (id) => { delete (await loadDoc()).entries[id]; await persist(); },
+    clear: async () => { (await loadDoc()).entries = {}; await persist(); },
+  },
+  settings: {
+    get: async (key) => (await loadDoc()).settings[key],
+    set: async (key, value) => { (await loadDoc()).settings[key] = structuredClone(value); await persist(); },
+  },
 };
+
+export const { entries, settings } = fileApi ? file : idb;
+export const dataLocation = () => (fileApi ? fileApi.location() : Promise.resolve(null));
+export const revealData = () => fileApi?.reveal();

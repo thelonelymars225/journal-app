@@ -442,6 +442,8 @@ $('#resort-all').addEventListener('click', async () => {
   out.textContent = targets.length ? `Re-sorted ${targets.length} entries${modelState.status === 'ready' ? '' : ' using keywords (model not loaded)'}.` : 'Nothing to re-sort.';
 });
 
+$('#reveal-data').addEventListener('click', () => db.revealData());
+
 $('#export').addEventListener('click', () => {
   const data = { app: 'journal', version: 1, exportedAt: new Date().toISOString(), topics: state.topics, entries: state.entries.map(stripTransient) };
   const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
@@ -484,6 +486,12 @@ $('#open-settings').addEventListener('click', () => {
   $('#autoload').checked = state.autoload;
   $('#suggest').checked = state.suggest;
   $('#resort-progress').textContent = '';
+  if (db.storageKind === 'file') {
+    db.dataLocation().then((where) => {
+      $('#data-where').textContent = `Your journal is saved as a file on this computer: ${where}. It's kept when you quit, restart, or update the app. Export a backup now and then.`;
+    });
+    $('#reveal-data').hidden = false;
+  }
   $('#settings').showModal();
 });
 
