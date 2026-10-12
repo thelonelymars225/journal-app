@@ -150,3 +150,7 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 @supports (padding: env(safe-area-inset-top)) {
   .app { height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
 }
+
+.storage-status { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--hover); }
+.storage-status.protected { color: #3f7a34; background: color-mix(in srgb, #5a9a4b 12%, transparent); }
+.storage-status.unprotected { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }

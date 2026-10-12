@@ -68,8 +68,18 @@ const idb = {
   },
 };
 
-// Ask the browser not to clear our data when disk space runs low.
-if (!fileApi && navigator.storage?.persist) navigator.storage.persist().catch(() => {});
+// Asks the browser to never clear our data to free up space, and reports
+// whether it agreed: 'file' (desktop app), 'protected', 'unprotected' or 'unknown'.
+export async function protectStorage() {
+  if (fileApi) return 'file';
+  if (!navigator.storage?.persist) return 'unknown';
+  try {
+    if (await navigator.storage.persisted()) return 'protected';
+    return (await navigator.storage.persist()) ? 'protected' : 'unprotected';
+  } catch {
+    return 'unknown';
+  }
+}
 
 // ---------- JSON file (desktop) ----------
 

@@ -18,6 +18,7 @@
         <div class="brand">Journal</div>
         <button id="new-entry" class="primary">+ New entry</button>
         <input id="search" type="search" placeholder="Search entries" />
+        <div id="backup-reminder" class="suggestion" hidden></div>
         <div id="suggestion" class="suggestion" hidden></div>
         <nav id="topic-nav" class="topic-nav"></nav>
         <div class="sidebar-foot">
@@ -93,11 +94,13 @@
         </section>
         <section>
           <h3>Your data</h3>
-          <p id="data-where" class="muted">Everything is stored only in this browser on this device. Export a backup now and then.</p>
+          <p id="data-where" class="muted">Everything is stored only in this browser on this device, and nothing is sent anywhere.</p>
+          <p id="storage-status" class="storage-status"></p>
+          <p id="backup-status" class="muted"></p>
           <div class="row">
             <button type="button" id="reveal-data" class="ghost" hidden>Show journal file</button>
-            <button type="button" id="export" class="ghost">Export backup (.json)</button>
-            <label class="ghost file-btn">Import backup<input id="import" type="file" accept="application/json" hidden /></label>
+            <button type="button" id="export" class="ghost">Back up to a file</button>
+            <label class="ghost file-btn">Restore from a backup<input id="import" type="file" accept="application/json" hidden /></label>
           </div>
         </section>
       </form>

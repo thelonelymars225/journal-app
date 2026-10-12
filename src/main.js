@@ -14,6 +14,9 @@ const state = {
   suggest: true,
   dismissed: [], // suggestion pool ids the user said no to
   suggestion: null, // { topic, entryIds }
+  lastBackupAt: 0,
+  backupSnoozeUntil: 0,
+  protection: 'unknown', // see db.protectStorage()
   filter: 'all', // 'all' | 'unsorted' | topic id
   search: '',
   sort: 'updatedAt',
@@ -444,13 +447,88 @@ $('#resort-all').addEventListener('click', async () => {
 
 $('#reveal-data').addEventListener('click', () => db.revealData());
 
-$('#export').addEventListener('click', () => {
+// ---------- backups ----------
+// A backup is one JSON file. On iPhone it opens the share sheet, so you can
+// "Save to Files" (iCloud Drive or On My iPhone); elsewhere it downloads.
+
+const BACKUP_EVERY_DAYS = 7;
+const DAY = 86400000;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isInstalled = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+
+async function backup() {
   const data = { app: 'journal', version: 1, exportedAt: new Date().toISOString(), topics: state.topics, entries: state.entries.map(stripTransient) };
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: `journal-backup-${new Date().toISOString().slice(0, 10)}.json` });
-  a.click();
-  URL.revokeObjectURL(url);
+  const name = `journal-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const file = new File([JSON.stringify(data, null, 2)], name, { type: 'application/json' });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Journal backup' });
+    } catch (err) {
+      if (err.name === 'AbortError') return false; // closed the share sheet
+      throw err;
+    }
+  } else {
+    const url = URL.createObjectURL(file);
+    Object.assign(document.createElement('a'), { href: url, download: name }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  state.lastBackupAt = Date.now();
+  await db.settings.set('lastBackupAt', state.lastBackupAt);
+  renderBackupReminder();
+  renderDataStatus();
+  return true;
+}
+
+function backupDue() {
+  if (!state.entries.length) return false;
+  const lastChange = Math.max(...state.entries.map((e) => e.updatedAt));
+  if (lastChange <= state.lastBackupAt) return false; // nothing new since the last backup
+  const since = state.lastBackupAt || Math.min(...state.entries.map((e) => e.createdAt));
+  return Date.now() - since > BACKUP_EVERY_DAYS * DAY && Date.now() > state.backupSnoozeUntil;
+}
+
+function renderBackupReminder() {
+  const el = $('#backup-reminder');
+  el.hidden = !backupDue();
+  if (el.hidden) return;
+  const when = state.lastBackupAt ? `Your last backup was ${relative(state.lastBackupAt)}.` : "You haven't saved a backup yet.";
+  el.innerHTML = `
+    <div class="suggest-label">Backup</div>
+    <div class="suggest-name">Save a copy of your journal</div>
+    <div class="muted small">${esc(when)} Your entries only live on this device${isIOS ? '; save a copy to Files or iCloud Drive' : ''}.</div>
+    <div class="suggest-actions">
+      <button class="primary small" data-backup="now">Back up</button>
+      <button class="ghost small" data-backup="later">Later</button>
+    </div>`;
+}
+
+$('#backup-reminder').addEventListener('click', async (ev) => {
+  const action = ev.target.closest('[data-backup]')?.dataset.backup;
+  if (action === 'now') await backup().catch((err) => alert(`Couldn't save the backup: ${err.message}`));
+  if (action === 'later') {
+    state.backupSnoozeUntil = Date.now() + 3 * DAY;
+    await db.settings.set('backupSnoozeUntil', state.backupSnoozeUntil);
+    renderBackupReminder();
+  }
 });
+
+function renderDataStatus() {
+  const status = $('#storage-status');
+  const p = state.protection;
+  status.className = `storage-status ${p}`;
+  status.textContent = {
+    file: '',
+    protected: 'Protected: this browser has agreed not to clear your journal to free up space.',
+    unprotected: isIOS && !isInstalled()
+      ? 'Not protected: Safari can clear website data you haven\'t used for a while. Add Journal to your Home Screen (Share → Add to Home Screen) and use it from there.'
+      : 'Not protected yet: the browser may clear your journal if the device runs low on space. Keep regular backups.',
+    unknown: 'This browser doesn\'t say whether it will keep your journal. Keep regular backups.',
+  }[p] || '';
+  status.hidden = p === 'file';
+  $('#backup-status').textContent = state.lastBackupAt ? `Last backup: ${fullDate.format(state.lastBackupAt)}.` : 'No backup saved yet.';
+}
+
+$('#export').addEventListener('click', () => backup().catch((err) => alert(`Couldn't save the backup: ${err.message}`)));
 
 $('#import').addEventListener('change', async (ev) => {
   const file = ev.target.files[0];
@@ -486,6 +564,7 @@ $('#open-settings').addEventListener('click', () => {
   $('#autoload').checked = state.autoload;
   $('#suggest').checked = state.suggest;
   $('#resort-progress').textContent = '';
+  renderDataStatus();
   if (db.storageKind === 'file') {
     db.dataLocation().then((where) => {
       $('#data-where').textContent = `Your journal is saved as a file on this computer: ${where}. It's kept when you quit, restart, or update the app. Export a backup now and then.`;
@@ -506,7 +585,7 @@ document.addEventListener('click', (ev) => {
 });
 
 // Keep "edited 3 minutes ago" fresh.
-setInterval(() => { renderMeta(); renderList(); }, 60000);
+setInterval(() => { renderMeta(); renderList(); renderBackupReminder(); }, 60000);
 
 // ---------- start ----------
 
@@ -516,11 +595,15 @@ async function init() {
   state.autoload = (await db.settings.get('autoload')) ?? true;
   state.suggest = (await db.settings.get('suggest')) ?? true;
   state.dismissed = (await db.settings.get('dismissed')) || [];
+  state.lastBackupAt = (await db.settings.get('lastBackupAt')) || 0;
+  state.backupSnoozeUntil = (await db.settings.get('backupSnoozeUntil')) || 0;
   state.entries = await db.entries.all();
   renderNav();
   renderList();
   if (state.autoload) loadModel();
   scheduleSuggestionScan(1500);
+  renderBackupReminder();
+  state.protection = await db.protectStorage();
 }
 
 init();

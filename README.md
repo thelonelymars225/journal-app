@@ -112,8 +112,15 @@ the files land in `release/`.
   type (with the previous version kept as `journal.json.bak`). It survives
   quitting, restarts, and installing a new version. Deleting the app doesn't
   delete it. Settings → "Show journal file" opens it in Finder.
-- **Browser / phone:** entries are stored in the browser's own storage on that
-  device (IndexedDB), and the app asks the browser to keep it permanently.
+- **Browser / phone:** entries are stored in the browser's own database on that
+  device (IndexedDB). Nothing is sent to any server. The app asks the browser
+  to protect that data from being cleared (`navigator.storage.persist()`), and
+  Settings shows whether it agreed.
+- **Backups:** Settings → "Back up to a file" saves everything as one JSON file.
+  On iPhone it opens the share sheet, so you can **Save to Files** (iCloud
+  Drive or On My iPhone). If you've written something new and haven't backed
+  up for 7 days, a reminder appears in the sidebar. "Restore from a backup"
+  brings a file back in, skipping entries you already have.
 
 Nothing syncs between devices. Use **Export backup** in settings to save a
 JSON copy, and **Import backup** to restore or move it.
