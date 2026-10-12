@@ -34,6 +34,23 @@ npm run electron
 This builds the web app and opens it in its own window. Entries live in the
 app's own storage, separate from your browser.
 
+## On your phone
+
+The web version is published to GitHub Pages on every push to `main`
+(`.github/workflows/pages.yml`):
+**https://thelonelymars225.github.io/journal-app/**
+
+Open it once and add it to your home screen:
+
+- **iPhone (Safari):** Share button → **Add to Home Screen**.
+- **Android (Chrome):** ⋮ menu → **Add to Home screen** / **Install app**.
+
+After the first visit it works offline, including the topic model. Entries
+are stored on the phone only; they don't sync with the Mac app (use Export /
+Import backup to move them). On iPhone, keep using it from the home-screen
+icon: Safari can clear data for websites you haven't opened in a while, but
+not for apps added to the home screen.
+
 ## Mac app
 
 Every push to `main` builds the Mac app on GitHub (see

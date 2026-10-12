@@ -524,3 +524,8 @@ async function init() {
 }
 
 init();
+
+// Installed web app: cache everything for offline use. Not used inside the Mac app.
+if ('serviceWorker' in navigator && !window.journalFile && location.protocol === 'https:') {
+  navigator.serviceWorker.register('./sw.js').catch((err) => console.warn('Offline mode unavailable', err));
+}

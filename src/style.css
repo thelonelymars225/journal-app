@@ -143,3 +143,8 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .suggest-name { font-weight: 600; font-size: 15px; }
 .suggest-actions { display: flex; gap: 6px; margin-top: 6px; }
 .primary.small { padding: 4px 10px; font-size: 12px; border-radius: 7px; }
+
+/* phones: keep clear of the notch and home indicator when installed */
+@supports (padding: env(safe-area-inset-top)) {
+  .app { height: 100dvh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+}
