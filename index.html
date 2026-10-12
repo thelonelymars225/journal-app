@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Journal</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app" class="app show-list">
+      <aside class="sidebar">
+        <div class="brand">Journal</div>
+        <button id="new-entry" class="primary">+ New entry</button>
+        <input id="search" type="search" placeholder="Search entries" />
+        <div id="suggestion" class="suggestion" hidden></div>
+        <nav id="topic-nav" class="topic-nav"></nav>
+        <div class="sidebar-foot">
+          <div id="model-status" class="model-status"></div>
+          <button id="open-settings" class="ghost">Topics &amp; settings</button>
+        </div>
+      </aside>
+
+      <section class="list-pane">
+        <header class="list-head">
+          <button class="back mobile-only" data-show="sidebar" aria-label="Topics">☰</button>
+          <h2 id="list-title">All entries</h2>
+          <select id="sort" aria-label="Sort entries">
+            <option value="updatedAt">Last edited</option>
+            <option value="createdAt">Date created</option>
+          </select>
+        </header>
+        <div id="entry-list" class="entry-list"></div>
+      </section>
+
+      <main class="editor-pane">
+        <div id="editor-empty" class="editor-empty">
+          <p>Pick an entry or start a new one.</p>
+          <p class="muted">Entries are filed into life topics automatically as you write.</p>
+        </div>
+        <div id="editor" class="editor" hidden>
+          <div class="editor-bar">
+            <button class="back mobile-only" data-show="list" aria-label="Back to entries">← Entries</button>
+            <div id="meta" class="meta"></div>
+            <span id="save-state" class="save-state"></span>
+            <button id="delete-entry" class="ghost danger">Delete</button>
+          </div>
+          <input id="title" class="title-input" placeholder="Title (optional)" />
+          <div class="topic-row">
+            <div id="entry-topics" class="chips"></div>
+            <div class="topic-actions">
+              <select id="add-topic" aria-label="Add a topic"></select>
+              <button id="resort" class="ghost small" title="Let the model decide again">Re-sort</button>
+            </div>
+          </div>
+          <div id="sort-source" class="sort-source"></div>
+          <textarea id="body" class="body-input" placeholder="What's on your mind?"></textarea>
+        </div>
+      </main>
+    </div>
+
+    <dialog id="settings" class="settings">
+      <form method="dialog" class="settings-inner">
+        <header>
+          <h2>Topics &amp; settings</h2>
+          <button class="ghost" value="close" aria-label="Close">✕</button>
+        </header>
+        <section>
+          <h3>Life topics</h3>
+          <p class="muted">The model reads the description to decide what fits, so a few concrete words help.</p>
+          <div id="topic-editor" class="topic-editor"></div>
+          <button type="button" id="add-topic-row" class="ghost">+ Add topic</button>
+        </section>
+        <section>
+          <h3>Sorting</h3>
+          <label class="row">Sensitivity
+            <input id="threshold" type="range" min="0.2" max="0.9" step="0.05" />
+            <span id="threshold-value" class="muted"></span>
+          </label>
+          <p class="muted">Lower files entries under more topics; higher only files them where the fit is clear.</p>
+          <label class="row"><input id="autoload" type="checkbox" /> Load the topic model when the app opens</label>
+          <label class="row"><input id="suggest" type="checkbox" /> Suggest new topics when I keep writing about something that isn't in my list</label>
+          <div class="row">
+            <button type="button" id="load-model" class="ghost">Load model now</button>
+            <button type="button" id="resort-all" class="ghost">Re-sort all entries</button>
+          </div>
+          <p id="resort-progress" class="muted"></p>
+        </section>
+        <section>
+          <h3>Your data</h3>
+          <p class="muted">Everything is stored only in this app on this computer. Export a backup now and then.</p>
+          <div class="row">
+            <button type="button" id="export" class="ghost">Export backup (.json)</button>
+            <label class="ghost file-btn">Import backup<input id="import" type="file" accept="application/json" hidden /></label>
+          </div>
+        </section>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
