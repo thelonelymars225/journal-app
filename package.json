@@ -12,7 +12,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "electron": "vite build && electron .",
-    "dist:mac": "node scripts/fetch-model.mjs --require && vite build && electron-builder --mac"
+    "dist:mac": "node scripts/fetch-model.mjs --require && vite build && electron-builder --mac --publish never"
   },
   "dependencies": {},
   "devDependencies": {
