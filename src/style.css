@@ -135,6 +135,8 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
   .mobile-only { display: inline-block; }
   .editor { padding: 14px 18px 0; }
   .t-name { width: 120px; }
+  /* 16px keeps iPhone Safari from zooming in when a field is tapped */
+  #search, .list-head select, .topic-actions select, .topic-edit input { font-size: 16px; }
 }
 
 /* topic suggestion */
