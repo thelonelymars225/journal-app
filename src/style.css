@@ -154,3 +154,20 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .storage-status { font-size: 13px; padding: 8px 10px; border-radius: 8px; background: var(--hover); }
 .storage-status.protected { color: #3f7a34; background: color-mix(in srgb, #5a9a4b 12%, transparent); }
 .storage-status.unprotected { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); }
+
+/* login */
+.login { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; padding-top: max(24px, env(safe-area-inset-top)); }
+.login-card { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.login-card h1 { font: 400 30px/1.2 var(--serif); margin: 4px 0 0; }
+.login-card p { margin: 0 0 8px; }
+.login-icon { width: 64px; height: 64px; border-radius: 15px; margin: 0 auto; }
+.login-card input { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 10px 12px; font-size: 16px; }
+.login-card .primary { padding: 11px 12px; font-size: 15px; margin-top: 4px; }
+.login-card .primary:disabled { opacity: 0.6; }
+.login-error { color: var(--danger); font-size: 13px; min-height: 1.5em; }
+
+.model-status.synced::before { background: #5a9a4b; }
+.model-status.syncing::before { background: #c98a3b; animation: pulse 1.2s infinite; }
+.model-status.offline::before { background: var(--muted); }
+.model-status.error::before { background: var(--danger); }
+.storage-status.cloud { color: #3f7a34; background: color-mix(in srgb, #5a9a4b 12%, transparent); }

@@ -14,9 +14,9 @@
     "electron": "vite build && electron .",
     "dist:mac": "node scripts/fetch-model.mjs --require && vite build && electron-builder --mac --publish never"
   },
-  "dependencies": {},
   "devDependencies": {
     "@huggingface/transformers": "3.8.1",
+    "@supabase/supabase-js": "2.117.3",
     "electron": "44.3.0",
     "electron-builder": "26.16.1",
     "vite": "6.4.1"
