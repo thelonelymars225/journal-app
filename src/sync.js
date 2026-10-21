@@ -9,10 +9,11 @@
 import { createClient } from '@supabase/supabase-js';
 import * as db from './db.js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
-const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const enabled = !!(URL && KEY);
-const supabase = enabled ? createClient(URL, KEY) : null;
+// Accepts the project URL with or without a copied API path like /rest/v1/.
+const PROJECT_URL = (import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/(rest|auth)\/v1\/?$/, '').replace(/\/+$/, '');
+const KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+export const enabled = !!(PROJECT_URL && KEY);
+const supabase = enabled ? createClient(PROJECT_URL, KEY) : null;
 
 // Settings that follow you between devices. Backup reminders stay per device.
 const SHARED_SETTINGS = ['topics', 'threshold', 'autoload', 'suggest', 'dismissed'];
