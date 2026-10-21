@@ -66,17 +66,14 @@
             <button id="done" class="primary done">Done</button>
           </div>
           <input id="title" class="title-input" placeholder="Title (optional)" aria-label="Title (optional)" enterkeyhint="next" autocomplete="off" />
-          <textarea id="body" class="body-input" placeholder="What's on your mind?" autocapitalize="sentences"></textarea>
-          <footer class="editor-foot">
-            <div class="topic-row">
-              <div id="entry-topics" class="chips"></div>
-              <div class="topic-actions">
-                <select id="add-topic" aria-label="Add a topic"></select>
-                <button id="resort" class="ghost small" title="Let the model decide again">Re-sort</button>
-              </div>
+          <div class="topic-row">
+            <div id="entry-topics" class="chips"></div>
+            <div class="topic-actions">
+              <select id="add-topic" aria-label="Add a topic"></select>
+              <button id="resort" class="ghost small" title="Let the model decide again">Re-sort</button>
             </div>
-            <div id="sort-source" class="sort-source"></div>
-          </footer>
+          </div>
+          <textarea id="body" class="body-input" placeholder="What's on your mind?" autocapitalize="sentences"></textarea>
         </div>
       </main>
     </div>

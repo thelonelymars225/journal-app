@@ -142,8 +142,9 @@ function renderMeta() {
 function renderEntryTopics() {
   const e = current();
   if (!e) return;
+  const empty = e.sorting ? 'Sorting…' : !e.topicsSource ? 'Topics are added as you write' : 'No topics yet';
   $('#entry-topics').innerHTML = e.topics.map(topicById).filter(Boolean).map((t) => chip(t, true)).join('') ||
-    `<span class="muted small">${e.sorting ? 'Sorting…' : 'No topics yet'}</span>`;
+    `<span class="muted small">${empty}</span>`;
   const free = state.topics.filter((t) => !e.topics.includes(t.id));
   $('#add-topic').innerHTML = '<option value="">+ Add topic</option>' + free.map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
   const src = {
@@ -151,7 +152,7 @@ function renderEntryTopics() {
     keywords: modelState.status === 'failed' ? 'Sorted by keywords (the model could not load)' : 'Sorted by keywords for now; the model will refine this once it loads',
     manual: 'You chose these topics, so automatic sorting is paused for this entry',
   }[e.topicsSource];
-  $('#sort-source').textContent = e.sorting ? 'Sorting…' : src || '';
+  $('#entry-topics').title = src || '';
 }
 
 // While the title is blank, it previews the title that will be used.
