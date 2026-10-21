@@ -108,14 +108,14 @@ button { cursor: pointer; }
 .title-input.auto::placeholder { font-style: italic; opacity: 0.85; }
 .body-input { flex: 1; border: 0; outline: none; resize: none; background: none; font: 18px/1.7 var(--serif); padding: 6px 0 24px; }
 .body-input::placeholder { color: var(--muted); opacity: 0.7; }
-.editor-foot { border-top: 1px solid var(--line); padding: 10px 0 14px; display: flex; flex-direction: column; gap: 4px; }
-.topic-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.topic-row .chips { flex: 1; min-height: 24px; }
-.topic-actions { display: flex; gap: 4px; align-items: center; }
+/* Topics sit right under the title, so you can see them appear while you write. */
+.topic-row { display: flex; align-items: center; gap: 8px; padding: 4px 0 2px; }
+.topic-row .chips { flex: 1; min-width: 0; min-height: 24px; }
+.topic-actions { display: flex; gap: 2px; align-items: center; flex: none; }
 .topic-actions select { border-color: transparent; background: none; color: var(--muted); }
 .topic-actions select:hover { border-color: var(--line); }
-.sort-source { font-size: 11px; color: var(--muted); }
-.editor.blank .editor-foot, .editor.blank #delete-entry { visibility: hidden; }
+.editor.blank .topic-actions { display: none; }
+.editor.blank #delete-entry { visibility: hidden; }
 
 /* phones: a round + always within thumb reach on the entry list */
 .fab { position: fixed; right: calc(20px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); font: 300 34px/1 var(--sans); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); z-index: 5; }
@@ -148,9 +148,9 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
   .app.show-sidebar .sidebar, .app.show-list .list-pane, .app.show-editor .editor-pane { display: flex !important; }
   .mobile-only { display: inline-block; }
   .editor { padding: 10px 18px 0; }
-  .editor-foot { padding-bottom: 10px; }
   .entry-list { padding-bottom: 100px; }
   .title-input { font-size: 18px; }
+  .topic-actions select { width: 7.5em; }
   .t-name { width: 120px; }
   /* 16px keeps iPhone Safari from zooming in when a field is tapped */
   #search, .list-head select, .topic-actions select, .topic-edit input { font-size: 16px; }

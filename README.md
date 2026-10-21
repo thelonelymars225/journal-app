@@ -119,7 +119,8 @@ the files land in `release/`.
 - The title is optional. Leave it empty and one is made from the entry's
   opening words (`src/titles.js`), on the device, in any language; it shows
   greyed out in the title line while you write. A title you type always wins.
-- Topics and Re-sort sit at the bottom of the page, out of the way.
+- Topics appear under the title as soon as the entry is sorted, about two
+  seconds after you stop typing.
 
 ## How the sorting works
 
