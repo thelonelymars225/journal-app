@@ -2,6 +2,7 @@ import * as db from './db.js';
 import * as sync from './sync.js';
 import { DEFAULT_TOPICS, PALETTE, SUGGESTION_POOL, pickTopics } from './topics.js';
 import { classify, loadModel, onModelState, modelState } from './classifier.js';
+import { generateTitle } from './titles.js';
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -29,6 +30,16 @@ const state = {
 const fullDate = new Intl.DateTimeFormat(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const shortDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const timeOnly = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+const dayAndTime = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+// "Today, 8:55 PM" / "Yesterday, 9:10 AM" / "Tue, Oct 14, 7:02 PM"
+function when(ts) {
+  const day = (t) => new Date(t).toDateString();
+  if (day(ts) === day(Date.now())) return `${rtf.format(0, 'day')}, ${timeOnly.format(ts)}`.replace(/^./, (c) => c.toUpperCase());
+  if (day(ts) === day(Date.now() - 86400000)) return `${rtf.format(-1, 'day')}, ${timeOnly.format(ts)}`.replace(/^./, (c) => c.toUpperCase());
+  return dayAndTime.format(ts);
+}
 
 function relative(ts) {
   const diff = (ts - Date.now()) / 1000;
@@ -41,7 +52,8 @@ function relative(ts) {
 }
 
 const topicById = (id) => state.topics.find((t) => t.id === id);
-const entryTitle = (e) => e.title.trim() || e.body.trim().split('\n')[0].slice(0, 60) || 'Untitled';
+// A title you typed always wins; otherwise one is made from the entry's opening words.
+const entryTitle = (e) => e.title.trim() || generateTitle(e.body) || 'Untitled';
 
 // ---------- sidebar ----------
 
@@ -96,7 +108,9 @@ function renderList() {
     return;
   }
   $('#entry-list').innerHTML = list.map((e) => {
-    const snippet = (e.title.trim() ? e.body : e.body.split('\n').slice(1).join(' ')).trim().slice(0, 140);
+    // Untitled entries show their text in full under the made-up title, unless it says nothing more.
+    const body = e.body.trim();
+    const snippet = (e.title.trim() || body.length > entryTitle(e).length + 12 ? body : '').slice(0, 140);
     const dateLabel = state.sort === 'createdAt' ? shortDate.format(e.createdAt) : `Edited ${relative(e.updatedAt)}`;
     return `
       <button class="entry-card ${e.id === state.currentId ? 'active' : ''}" data-id="${esc(e.id)}">
@@ -121,7 +135,7 @@ const current = () => state.entries.find((e) => e.id === state.currentId);
 function renderMeta() {
   const e = current();
   if (!e) return;
-  $('#meta').innerHTML = `<span title="Created">Created ${esc(fullDate.format(e.createdAt))}</span>` +
+  $('#meta').innerHTML = `<span title="Created ${esc(fullDate.format(e.createdAt))}">${esc(when(e.createdAt))}</span>` +
     (e.updatedAt - e.createdAt > 60000 ? `<span title="${esc(fullDate.format(e.updatedAt))}">Edited ${esc(relative(e.updatedAt))}</span>` : '');
 }
 
@@ -140,7 +154,20 @@ function renderEntryTopics() {
   $('#sort-source').textContent = e.sorting ? 'Sorting…' : src || '';
 }
 
+// While the title is blank, it previews the title that will be used.
+function renderTitleHint() {
+  const e = current();
+  if (!e) return;
+  const auto = generateTitle(e.body);
+  $('#title').placeholder = auto || 'Title (optional)';
+  $('#title').classList.toggle('auto', !!auto);
+  // A blank page shows nothing but the page; topics and Delete appear once there's something to file.
+  $('#editor').classList.toggle('blank', !e.title.trim() && !e.body.trim());
+}
+
 function openEntry(id) {
+  const prev = current();
+  if (prev && prev.id !== id) discardIfEmpty(prev);
   state.currentId = id;
   const e = current();
   $('#editor-empty').hidden = !!e;
@@ -150,6 +177,7 @@ function openEntry(id) {
   $('#body').value = e.body;
   $('#save-state').textContent = '';
   renderMeta();
+  renderTitleHint();
   renderEntryTopics();
   renderList();
   show('editor');
@@ -161,12 +189,47 @@ async function newEntry() {
   state.entries.push(e);
   if (state.filter !== 'all' && state.filter !== 'unsorted') state.filter = 'all';
   renderNav();
+  unsaved.add(e.id);
   openEntry(e.id);
+  // Focus inside the tap itself, so the iPhone keyboard comes straight up.
   $('#body').focus();
-  await db.entries.put(stripTransient(e));
 }
 
 const stripTransient = ({ sorting, ...rest }) => rest;
+
+// A new entry is only stored once something is written in it, and an entry
+// left blank is dropped, so a tap on "+" never leaves an empty page behind.
+const unsaved = new Set();
+
+async function discardIfEmpty(e) {
+  if (e.title.trim() || e.body.trim()) return;
+  clearTimeout(saveTimers.get(e.id)); saveTimers.delete(e.id);
+  clearTimeout(sortTimers.get(e.id)); sortTimers.delete(e.id);
+  state.entries = state.entries.filter((x) => x.id !== e.id);
+  if (!unsaved.delete(e.id)) await db.entries.remove(e.id);
+  renderNav();
+  renderList();
+}
+
+async function saveNow(e) {
+  if (!saveTimers.has(e.id)) return;
+  clearTimeout(saveTimers.get(e.id));
+  saveTimers.delete(e.id);
+  unsaved.delete(e.id);
+  await db.entries.put(stripTransient(e));
+}
+
+// Done: save right away and put the page away.
+async function closeEditor() {
+  const e = current();
+  if (!e) return;
+  $('#body').blur(); $('#title').blur();
+  await saveNow(e);
+  openEntry(null);
+  renderList();
+  show('list');
+  if (e.body.trim() && sortTimers.has(e.id)) { clearTimeout(sortTimers.get(e.id)); sortTimers.delete(e.id); sortEntry(e); }
+}
 
 // Timers are per entry so switching entries mid-typing never drops a save or a sort.
 const saveTimers = new Map();
@@ -179,9 +242,11 @@ function onEdit() {
   e.body = $('#body').value;
   e.updatedAt = Date.now();
   $('#save-state').textContent = 'Saving…';
+  renderTitleHint();
   clearTimeout(saveTimers.get(e.id));
   saveTimers.set(e.id, setTimeout(async () => {
     saveTimers.delete(e.id);
+    unsaved.delete(e.id);
     await db.entries.put(stripTransient(e));
     if (e.id === state.currentId) { $('#save-state').textContent = 'Saved'; renderMeta(); }
     renderList();
@@ -193,12 +258,35 @@ function onEdit() {
 $('#title').addEventListener('input', onEdit);
 $('#body').addEventListener('input', onEdit);
 $('#new-entry').addEventListener('click', newEntry);
+$('#quick-new').addEventListener('click', newEntry);
+$('#editor-empty').addEventListener('click', newEntry);
+$('#done').addEventListener('click', closeEditor);
+$('#title').addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') { ev.preventDefault(); $('#body').focus(); }
+});
+
+// Keyboard: N starts an entry, Esc or Cmd/Ctrl+Enter finishes it.
+document.addEventListener('keydown', (ev) => {
+  if ($('#app').hidden || $('#settings').open) return;
+  const typing = ev.target.closest?.('input, textarea, select');
+  if (current() && (ev.key === 'Escape' || (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)))) {
+    ev.preventDefault();
+    closeEditor();
+  } else if (!typing && !ev.metaKey && !ev.ctrlKey && !ev.altKey && ev.key.toLowerCase() === 'n') {
+    ev.preventDefault();
+    newEntry();
+  }
+});
 
 $('#delete-entry').addEventListener('click', async () => {
   const e = current();
-  if (!e || !confirm(`Delete “${entryTitle(e)}”? This can't be undone.`)) return;
+  if (!e) return;
+  if (!e.title.trim() && !e.body.trim()) { closeEditor(); return; }
+  if (!confirm(`Delete “${entryTitle(e)}”? This can't be undone.`)) return;
   state.entries = state.entries.filter((x) => x.id !== e.id);
-  await db.entries.remove(e.id);
+  clearTimeout(saveTimers.get(e.id)); saveTimers.delete(e.id);
+  clearTimeout(sortTimers.get(e.id)); sortTimers.delete(e.id);
+  if (!unsaved.delete(e.id)) await db.entries.remove(e.id);
   state.currentId = null;
   openEntry(null);
   renderNav();
@@ -610,6 +698,7 @@ async function applyRemote({ changed, removed, settings }) {
       if ($('#title').value !== r.title) $('#title').value = r.title;
       if ($('#body').value !== r.body) $('#body').value = r.body;
       renderMeta();
+      renderTitleHint();
       renderEntryTopics();
     }
   }

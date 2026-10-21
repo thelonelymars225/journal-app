@@ -111,6 +111,16 @@ After that it opens normally.
 To build the .dmg on a Mac yourself: `npm install` then `npm run dist:mac`;
 the files land in `release/`.
 
+## Writing
+
+- Tap the round **+** (phone) or press **N** / click the empty page (computer)
+  and start typing: the cursor is already in the text. **Done** (or Esc,
+  Cmd/Ctrl+Enter) saves and puts the page away. A page left blank isn't kept.
+- The title is optional. Leave it empty and one is made from the entry's
+  opening words (`src/titles.js`), on the device, in any language; it shows
+  greyed out in the title line while you write. A title you type always wins.
+- Topics and Re-sort sit at the bottom of the page, out of the way.
+
 ## How the sorting works
 
 - When you stop typing for about two seconds, the entry is sent to a small
@@ -162,6 +172,7 @@ JSON copy, and **Import backup** to restore or move it.
 - `src/db.js` — storage: a JSON file in the Mac app, IndexedDB in a browser
 - `electron/preload.cjs` — the narrow bridge the page uses to read/write that file
 - `src/topics.js` — default topics and the keyword fallback
+- `src/titles.js` — titles for entries you leave untitled
 - `src/classifier.js`, `src/classifier.worker.js` — the on-device model
 - `scripts/fetch-model.mjs` — puts the model files into `public/models/`
 - `electron/main.cjs` — desktop wrapper
