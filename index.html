@@ -50,30 +50,33 @@
           </select>
         </header>
         <div id="entry-list" class="entry-list"></div>
+        <button id="quick-new" class="fab mobile-only" aria-label="New entry">+</button>
       </section>
 
       <main class="editor-pane">
-        <div id="editor-empty" class="editor-empty">
-          <p>Pick an entry or start a new one.</p>
-          <p class="muted">Entries are filed into life topics automatically as you write.</p>
-        </div>
+        <button id="editor-empty" class="editor-empty" type="button">
+          <span class="empty-prompt">What's on your mind?</span>
+          <span class="muted">Click here or press N to jot it down. Topics and a title are filled in for you.</span>
+        </button>
         <div id="editor" class="editor" hidden>
           <div class="editor-bar">
-            <button class="back mobile-only" data-show="list" aria-label="Back to entries">← Entries</button>
             <div id="meta" class="meta"></div>
             <span id="save-state" class="save-state"></span>
-            <button id="delete-entry" class="ghost danger">Delete</button>
+            <button id="delete-entry" class="ghost danger small">Delete</button>
+            <button id="done" class="primary done">Done</button>
           </div>
-          <input id="title" class="title-input" placeholder="Title (optional)" />
-          <div class="topic-row">
-            <div id="entry-topics" class="chips"></div>
-            <div class="topic-actions">
-              <select id="add-topic" aria-label="Add a topic"></select>
-              <button id="resort" class="ghost small" title="Let the model decide again">Re-sort</button>
+          <input id="title" class="title-input" placeholder="Title (optional)" aria-label="Title (optional)" enterkeyhint="next" autocomplete="off" />
+          <textarea id="body" class="body-input" placeholder="What's on your mind?" autocapitalize="sentences"></textarea>
+          <footer class="editor-foot">
+            <div class="topic-row">
+              <div id="entry-topics" class="chips"></div>
+              <div class="topic-actions">
+                <select id="add-topic" aria-label="Add a topic"></select>
+                <button id="resort" class="ghost small" title="Let the model decide again">Re-sort</button>
+              </div>
             </div>
-          </div>
-          <div id="sort-source" class="sort-source"></div>
-          <textarea id="body" class="body-input" placeholder="What's on your mind?"></textarea>
+            <div id="sort-source" class="sort-source"></div>
+          </footer>
         </div>
       </main>
     </div>

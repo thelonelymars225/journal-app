@@ -93,19 +93,33 @@ button { cursor: pointer; }
 
 /* editor */
 .editor-pane { background: var(--panel); min-height: 0; display: flex; }
-.editor-empty { margin: auto; text-align: center; color: var(--text); font-family: var(--serif); font-size: 18px; }
-.editor-empty .muted { font-family: var(--sans); font-size: 13px; }
+.editor-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 0; background: none; color: var(--text); cursor: text; padding: 24px; }
+.empty-prompt { font: 22px var(--serif); color: var(--muted); }
+.editor-empty:hover .empty-prompt { color: var(--text); }
+.editor-empty .muted { font-size: 13px; }
 .editor { flex: 1; display: flex; flex-direction: column; max-width: 760px; margin: 0 auto; padding: 18px 40px 0; min-height: 0; }
-.editor-bar { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
-.meta { flex: 1; display: flex; gap: 14px; flex-wrap: wrap; }
-.save-state { min-width: 50px; text-align: right; }
-.title-input { border: 0; background: none; outline: none; font: 600 28px/1.25 var(--serif); padding: 18px 0 6px; }
-.topic-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* The page is a blank sheet: the text comes first, everything else stays out of the way. */
+.editor-bar { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; min-height: 36px; }
+.meta { flex: 1; display: flex; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.save-state { text-align: right; }
+.done { border-radius: 999px; padding: 6px 16px; }
+.title-input { border: 0; background: none; outline: none; font: 600 20px/1.3 var(--serif); padding: 14px 0 2px; }
+.title-input::placeholder { color: var(--muted); opacity: 0.7; }
+.title-input.auto::placeholder { font-style: italic; opacity: 0.85; }
+.body-input { flex: 1; border: 0; outline: none; resize: none; background: none; font: 18px/1.7 var(--serif); padding: 6px 0 24px; }
+.body-input::placeholder { color: var(--muted); opacity: 0.7; }
+.editor-foot { border-top: 1px solid var(--line); padding: 10px 0 14px; display: flex; flex-direction: column; gap: 4px; }
+.topic-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .topic-row .chips { flex: 1; min-height: 24px; }
-.topic-row .chip { font-size: 12.5px; padding: 2px 9px; }
-.topic-actions { display: flex; gap: 6px; align-items: center; }
-.sort-source { font-size: 11.5px; color: var(--muted); padding: 4px 0 10px; border-bottom: 1px solid var(--line); }
-.body-input { flex: 1; border: 0; outline: none; resize: none; background: none; font: 17px/1.75 var(--serif); padding: 18px 0 40px; }
+.topic-actions { display: flex; gap: 4px; align-items: center; }
+.topic-actions select { border-color: transparent; background: none; color: var(--muted); }
+.topic-actions select:hover { border-color: var(--line); }
+.sort-source { font-size: 11px; color: var(--muted); }
+.editor.blank .editor-foot, .editor.blank #delete-entry { visibility: hidden; }
+
+/* phones: a round + always within thumb reach on the entry list */
+.fab { position: fixed; right: calc(20px + env(safe-area-inset-right)); bottom: calc(22px + env(safe-area-inset-bottom)); width: 58px; height: 58px; border-radius: 50%; border: 0; background: var(--accent); color: var(--accent-ink); font: 300 34px/1 var(--sans); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18); z-index: 5; }
+.fab:active { transform: scale(0.96); }
 
 /* settings */
 .settings { border: 1px solid var(--line); border-radius: 14px; padding: 0; background: var(--panel); color: var(--text); width: min(720px, 94vw); max-height: 88vh; }
@@ -129,11 +143,14 @@ input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
 .back { border: 0; background: none; color: var(--accent); padding: 4px 6px 4px 0; font-size: 14px; }
 
 @media (max-width: 860px) {
-  .app { grid-template-columns: 1fr; }
+  .app { grid-template-columns: minmax(0, 1fr); }
   .app > * { display: none !important; }
   .app.show-sidebar .sidebar, .app.show-list .list-pane, .app.show-editor .editor-pane { display: flex !important; }
   .mobile-only { display: inline-block; }
-  .editor { padding: 14px 18px 0; }
+  .editor { padding: 10px 18px 0; }
+  .editor-foot { padding-bottom: 10px; }
+  .entry-list { padding-bottom: 100px; }
+  .title-input { font-size: 18px; }
   .t-name { width: 120px; }
   /* 16px keeps iPhone Safari from zooming in when a field is tapped */
   #search, .list-head select, .topic-actions select, .topic-edit input { font-size: 16px; }
