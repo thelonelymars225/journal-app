@@ -1,4 +1,5 @@
 import * as db from './db.js';
+import * as sync from './sync.js';
 import { DEFAULT_TOPICS, PALETTE, SUGGESTION_POOL, pickTopics } from './topics.js';
 import { classify, loadModel, onModelState, modelState } from './classifier.js';
 
@@ -480,7 +481,7 @@ async function backup() {
 }
 
 function backupDue() {
-  if (!state.entries.length) return false;
+  if (sync.enabled || !state.entries.length) return false;
   const lastChange = Math.max(...state.entries.map((e) => e.updatedAt));
   if (lastChange <= state.lastBackupAt) return false; // nothing new since the last backup
   const since = state.lastBackupAt || Math.min(...state.entries.map((e) => e.createdAt));
@@ -514,7 +515,7 @@ $('#backup-reminder').addEventListener('click', async (ev) => {
 
 function renderDataStatus() {
   const status = $('#storage-status');
-  const p = state.protection;
+  const p = sync.enabled ? 'cloud' : state.protection;
   status.className = `storage-status ${p}`;
   status.textContent = {
     file: '',
@@ -523,6 +524,7 @@ function renderDataStatus() {
       ? 'Not protected: Safari can clear website data you haven\'t used for a while. Add Journal to your Home Screen (Share → Add to Home Screen) and use it from there.'
       : 'Not protected yet: the browser may clear your journal if the device runs low on space. Keep regular backups.',
     unknown: 'This browser doesn\'t say whether it will keep your journal. Keep regular backups.',
+    cloud: syncLabel(sync.syncStatus(), true),
   }[p] || '';
   status.hidden = p === 'file';
   $('#backup-status').textContent = state.lastBackupAt ? `Last backup: ${fullDate.format(state.lastBackupAt)}.` : 'No backup saved yet.';
@@ -565,13 +567,89 @@ $('#open-settings').addEventListener('click', () => {
   $('#suggest').checked = state.suggest;
   $('#resort-progress').textContent = '';
   renderDataStatus();
-  if (db.storageKind === 'file') {
+  if (sync.enabled) {
+    $('#data-where').textContent = 'Your journal is saved to your Supabase account, and a copy stays on this device so it opens instantly and works offline. Topic sorting still runs on this device.';
+    $('#account').hidden = false;
+    $('#account-email').textContent = `Signed in as ${sync.userEmail()}`;
+  } else if (db.storageKind === 'file') {
     db.dataLocation().then((where) => {
       $('#data-where').textContent = `Your journal is saved as a file on this computer: ${where}. It's kept when you quit, restart, or update the app. Export a backup now and then.`;
     });
     $('#reveal-data').hidden = false;
   }
   $('#settings').showModal();
+});
+
+// ---------- cloud sync ----------
+
+function syncLabel(s, long = false) {
+  const waiting = s.pending ? ` · ${s.pending} change${s.pending === 1 ? '' : 's'} waiting` : '';
+  if (s.state === 'syncing') return 'Syncing…';
+  if (s.state === 'offline') return `Offline${waiting || ' · saved on this device'}`;
+  if (s.state === 'error') return `Sync problem${long ? `: ${s.error}` : ''}${waiting}`;
+  if (s.lastSyncAt) return `Synced ${relative(s.lastSyncAt)}${waiting}`;
+  return `Not synced yet${waiting}`;
+}
+
+function renderSyncStatus(s = sync.syncStatus()) {
+  const el = $('#sync-status');
+  el.hidden = false;
+  el.className = `model-status ${s.state === 'idle' ? '' : s.state}`;
+  el.textContent = syncLabel(s);
+  el.title = s.error || '';
+  if ($('#settings').open) renderDataStatus();
+}
+
+// Changes from your other devices, already saved on this one.
+async function applyRemote({ changed, removed, settings }) {
+  for (const r of changed) {
+    if (saveTimers.has(r.id)) continue; // you're typing in it here; your version wins
+    const mine = state.entries.find((e) => e.id === r.id);
+    if (mine) Object.assign(mine, r); else state.entries.push(r);
+    if (r.id === state.currentId) {
+      if ($('#title').value !== r.title) $('#title').value = r.title;
+      if ($('#body').value !== r.body) $('#body').value = r.body;
+      renderMeta();
+      renderEntryTopics();
+    }
+  }
+  if (removed.length) {
+    state.entries = state.entries.filter((e) => !removed.includes(e.id));
+    if (removed.includes(state.currentId)) { state.currentId = null; openEntry(null); show('list'); }
+  }
+  if (settings.length) {
+    await loadSettings();
+    if (state.filter !== 'all' && state.filter !== 'unsorted' && !topicById(state.filter)) state.filter = 'all';
+    if ($('#settings').open) renderTopicEditor();
+    if (current()) renderEntryTopics();
+  }
+  renderNav();
+  renderList();
+  scheduleSuggestionScan();
+}
+
+$('#sync-now').addEventListener('click', () => sync.syncNow());
+$('#sign-out').addEventListener('click', async () => {
+  if (await sync.signOut()) location.reload();
+});
+
+$('#login-form').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const btn = $('#login-submit');
+  btn.disabled = true;
+  $('#login-error').textContent = '';
+  try {
+    const user = await sync.signIn($('#login-email').value.trim(), $('#login-password').value);
+    $('#login').hidden = true;
+    $('#login-password').value = '';
+    await start(user);
+  } catch (err) {
+    $('#login-error').textContent = navigator.onLine
+      ? (/invalid login/i.test(err.message) ? 'Wrong email or password.' : err.message)
+      : "You're offline. Connect to the internet to sign in.";
+  } finally {
+    btn.disabled = false;
+  }
 });
 
 // ---------- small screens: one pane at a time ----------
@@ -585,16 +663,36 @@ document.addEventListener('click', (ev) => {
 });
 
 // Keep "edited 3 minutes ago" fresh.
-setInterval(() => { renderMeta(); renderList(); renderBackupReminder(); }, 60000);
+setInterval(() => { renderMeta(); renderList(); renderBackupReminder(); if (sync.enabled && !$('#app').hidden) renderSyncStatus(); }, 60000);
 
 // ---------- start ----------
 
-async function init() {
+async function loadSettings() {
   state.topics = (await db.settings.get('topics')) || structuredClone(DEFAULT_TOPICS);
   state.threshold = (await db.settings.get('threshold')) ?? 0.5;
   state.autoload = (await db.settings.get('autoload')) ?? true;
   state.suggest = (await db.settings.get('suggest')) ?? true;
   state.dismissed = (await db.settings.get('dismissed')) || [];
+}
+
+// With cloud sync on, the journal opens only after you sign in (once per device).
+async function init() {
+  if (sync.enabled) {
+    const user = await sync.currentUser();
+    if (!user) {
+      $('#login').hidden = false;
+      $('#login-email').focus();
+      return;
+    }
+    await start(user);
+  } else {
+    await start(null);
+  }
+}
+
+async function start(user) {
+  $('#app').hidden = false;
+  await loadSettings();
   state.lastBackupAt = (await db.settings.get('lastBackupAt')) || 0;
   state.backupSnoozeUntil = (await db.settings.get('backupSnoozeUntil')) || 0;
   state.entries = await db.entries.all();
@@ -603,6 +701,10 @@ async function init() {
   if (state.autoload) loadModel();
   scheduleSuggestionScan(1500);
   renderBackupReminder();
+  if (user) {
+    renderSyncStatus();
+    await sync.start(user, { onRemoteChange: applyRemote, onStatus: renderSyncStatus });
+  }
   state.protection = await db.protectStorage();
 }
 

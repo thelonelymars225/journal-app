@@ -13,7 +13,19 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app" class="app show-list">
+    <div id="login" class="login" hidden>
+      <form id="login-form" class="login-card">
+        <img src="./icon-192.png" alt="" class="login-icon" />
+        <h1>Journal</h1>
+        <p class="muted">Sign in to open your journal.</p>
+        <input id="login-email" type="email" autocomplete="username" placeholder="Email" required />
+        <input id="login-password" type="password" autocomplete="current-password" placeholder="Password" required />
+        <button id="login-submit" class="primary" type="submit">Sign in</button>
+        <p id="login-error" class="login-error" role="alert"></p>
+      </form>
+    </div>
+
+    <div id="app" class="app show-list" hidden>
       <aside class="sidebar">
         <div class="brand">Journal</div>
         <button id="new-entry" class="primary">+ New entry</button>
@@ -22,6 +34,7 @@
         <div id="suggestion" class="suggestion" hidden></div>
         <nav id="topic-nav" class="topic-nav"></nav>
         <div class="sidebar-foot">
+          <div id="sync-status" class="model-status" hidden></div>
           <div id="model-status" class="model-status"></div>
           <button id="open-settings" class="ghost">Topics &amp; settings</button>
         </div>
@@ -96,6 +109,11 @@
           <h3>Your data</h3>
           <p id="data-where" class="muted">Everything is stored only in this browser on this device, and nothing is sent anywhere.</p>
           <p id="storage-status" class="storage-status"></p>
+          <div id="account" class="row" hidden>
+            <span id="account-email" class="muted"></span>
+            <button type="button" id="sync-now" class="ghost">Sync now</button>
+            <button type="button" id="sign-out" class="ghost danger">Sign out</button>
+          </div>
           <p id="backup-status" class="muted"></p>
           <div class="row">
             <button type="button" id="reveal-data" class="ghost" hidden>Show journal file</button>

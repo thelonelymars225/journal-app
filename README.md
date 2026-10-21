@@ -45,11 +45,41 @@ Open it once and add it to your home screen:
 - **iPhone (Safari):** Share button → **Add to Home Screen**.
 - **Android (Chrome):** ⋮ menu → **Add to Home screen** / **Install app**.
 
-After the first visit it works offline, including the topic model. Entries
-are stored on the phone only; they don't sync with the Mac app (use Export /
+After the first visit it works offline, including the topic model. With cloud
+sync set up (below), you sign in once per device and entries are saved to
+Supabase as well as on the device, so they follow you between phone and
+computer. Without it, entries are stored on the device only (use Export /
 Import backup to move them). On iPhone, keep using it from the home-screen
 icon: Safari can clear data for websites you haven't opened in a while, but
 not for apps added to the home screen.
+
+## Cloud sync and sign-in (Supabase)
+
+The journal can be saved to your own [Supabase](https://supabase.com) project,
+behind a login that only you have. Topic sorting still runs on the device; only
+the entries and your topic settings are stored in Supabase. A copy is kept on
+each device, so the app opens instantly and works offline, and changes upload
+when you're back online. The first time you sign in on a device, any entries
+already on it are uploaded.
+
+One-time setup:
+
+1. Create a project at [supabase.com](https://supabase.com/dashboard).
+2. **SQL Editor:** paste [`supabase/schema.sql`](supabase/schema.sql) and run it.
+   It creates the tables and the row-level security rules that only let a
+   signed-in user see their own rows.
+3. **Authentication → Users → Add user:** create your account (email and
+   password, with "Auto confirm" on).
+4. **Authentication → Sign In / Providers:** turn off **Allow new users to
+   sign up**, so nobody else can create an account.
+5. **Project Settings → API:** copy the Project URL and the anon (publishable)
+   key. In GitHub, add them under **Settings → Secrets and variables → Actions
+   → Variables** as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then
+   re-run the "Publish web app" workflow.
+
+The anon key is meant to be public; without a login it can't read or write
+anything. For local development, put the same two values in a `.env.local`
+file. If they're missing, the app builds as local-only with no login.
 
 ## Mac app
 

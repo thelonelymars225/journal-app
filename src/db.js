@@ -3,7 +3,8 @@
 //   folder (see electron/main.cjs). Files aren't subject to browser storage
 //   cleanup, are easy to back up, and survive app updates.
 // - In a browser, entries live in IndexedDB on this machine.
-// Either way nothing leaves the computer.
+// When cloud sync is on (see sync.js), this local copy is also an offline
+// cache: every change is noted here and uploaded to Supabase.
 
 const fileApi = typeof window !== 'undefined' ? window.journalFile : undefined;
 export const storageKind = fileApi ? 'file' : 'browser';
@@ -135,6 +136,22 @@ const file = {
   },
 };
 
-export const { entries, settings } = fileApi ? file : idb;
+// The storage on this device, without change tracking (sync.js writes here).
+export const local = fileApi ? file : idb;
+
+// sync.js registers here to hear about every change the app makes.
+let changeHook = null;
+export const onLocalChange = (fn) => { changeHook = fn; };
+const notify = (kind, key) => changeHook?.(kind, key);
+
+export const entries = {
+  ...local.entries,
+  put: async (entry) => { await local.entries.put(entry); notify('entry', entry.id); },
+  remove: async (id) => { await local.entries.remove(id); notify('entry', id); },
+};
+export const settings = {
+  ...local.settings,
+  set: async (key, value) => { await local.settings.set(key, value); notify('setting', key); },
+};
 export const dataLocation = () => (fileApi ? fileApi.location() : Promise.resolve(null));
 export const revealData = () => fileApi?.reveal();
