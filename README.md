@@ -72,14 +72,15 @@ One-time setup:
    password, with "Auto confirm" on).
 4. **Authentication → Sign In / Providers:** turn off **Allow new users to
    sign up**, so nobody else can create an account.
-5. **Project Settings → API:** copy the Project URL and the anon (publishable)
-   key. In GitHub, add them under **Settings → Secrets and variables → Actions
-   → Variables** as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, then
-   re-run the "Publish web app" workflow.
+5. **Project Settings → API:** copy the Project URL and the publishable
+   (`sb_publishable_…`) key into [`.env.production`](.env.production) as
+   `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`, and push to `main`.
 
-The anon key is meant to be public; without a login it can't read or write
-anything. For local development, put the same two values in a `.env.local`
-file. If they're missing, the app builds as local-only with no login.
+Both values are meant to be public; without a login the publishable key can't
+read or write anything. Never use the secret (`sb_secret_…`) key in the app.
+`npm run dev` doesn't read `.env.production`; to try sync locally, put the same
+two values in a `.env.local` file. If they're missing, the app builds as
+local-only with no login.
 
 ## Mac app
 

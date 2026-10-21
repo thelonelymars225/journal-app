@@ -17,8 +17,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Lets the build read variables saved on the github-pages environment too.
-    environment: github-pages
     steps:
       - uses: actions/checkout@v4
 
@@ -32,13 +30,6 @@ jobs:
 
       - name: Build (with the topic model inside)
         run: node scripts/fetch-model.mjs --require && npx vite build
-        env:
-          # Supabase project for cloud sync and sign-in: repo Settings → Secrets and
-          # variables → Actions, or Settings → Environments → github-pages. Both
-          # are safe to publish: row-level security protects the data. Left
-          # empty, the app builds as local-only.
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
 
       - uses: actions/configure-pages@v5
         with:
